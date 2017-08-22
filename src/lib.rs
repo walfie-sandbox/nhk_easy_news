@@ -1,9 +1,7 @@
-#[macro_use]
-extern crate html5ever;
+extern crate select;
 
-use html5ever::QualName;
-use html5ever::rcdom::{self, NodeData, RcDom};
-use html5ever::tendril::TendrilSink;
+use select::document::Document;
+use select::node::Node;
 
 pub struct Image {
     pub url: String,
@@ -43,53 +41,17 @@ pub enum Token {
     Other(Fragment),
 }
 
-/*
-fn parse_token(node: rcdom::Handle) -> Option<Token> {
-    match node.data {
-        NodeData::Element { ref name, ref attrs } => {
-            match name.local {
-                local_name!("ruby") => {
-                    node.children
-                }
-                local_name!("span") => {
+fn parse_ruby(node: &Node) -> Option<Fragment> {
+    use select::predicate::{Name, Text};
 
-                }
-            }
+    node.find(Text).next().map(|text| {
+        let furigana = node.find(Name("rt")).next().map(|rt| rt.text());
+
+        Fragment {
+            text: text.text(),
+            furigana,
         }
-        NodeData::Text { ref contents } =>
-            return Some(Token::Other(Fragment::from(contents)));
-        _ => (),
-    }
-}
-*/
-
-fn parse_ruby(nodes: &[rcdom::Handle]) -> Option<Fragment> {
-    let mut out_text = None;
-    let mut furigana = None;
-
-    for node in nodes {
-        match node.data {
-            NodeData::Text { ref contents, .. } => {
-                out_text = Some(contents.borrow().to_string());
-            }
-            NodeData::Element { ref name, .. } if name.local == local_name!("rt") => {
-                if let Some(child) = node.children.borrow().first() {
-                    if let NodeData::Text { ref contents, .. } = child.data {
-                        furigana = Some(contents.borrow().to_string());
-                    }
-                }
-            }
-            NodeData::Element { ref name, .. } => {
-                println!("{:?}", name);
-            }
-            _ => {}
-        }
-    }
-
-    println!("out_text: {:?}", out_text);
-    println!("furigana: {:?}", furigana);
-
-    out_text.map(|text| Fragment { text, furigana })
+    })
 }
 
 #[cfg(test)]
@@ -98,16 +60,13 @@ mod test {
 
     #[test]
     fn ruby() {
-        // Fails
-        let node = html5ever::driver::parse_fragment(
-            RcDom::default(),
-            Default::default(),
-            QualName::new(None, ns!(html), local_name!("body")),
-            Vec::new(),
-        ).one("<ruby>強<rt>つよ</rt></ruby>");
+        use select::predicate::Name;
+
+        let doc = Document::from("<ruby>強<rt>つよ</rt></ruby>");
+        let ruby = doc.find(Name("ruby")).next().unwrap();
 
         assert_eq!(
-            parse_ruby(&node.document.children.borrow()),
+            parse_ruby(&ruby),
             Some(Fragment {
                 text: "強".into(),
                 furigana: Some("つよ".into()),
