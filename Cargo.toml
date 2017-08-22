@@ -1,0 +1,7 @@
+[package]
+authors = ["Walfie <walfington@gmail.com>"]
+name = "nhk_easy_news"
+version = "0.1.0"
+
+[dependencies]
+html5ever = "0.19"
