@@ -28,29 +28,53 @@ fn main() {
         }
     }
 
+    let mut vocab = Vec::new();
+    let mut locations = Vec::new();
+    let mut names = Vec::new();
+
     for paragraph in article.paragraphs.iter() {
         for token in paragraph.0.iter() {
             use Token::*;
 
             match *token {
-                Location(ref fragments) => {
-                    print!("Location: ");
-                    print_fragments(fragments);
-                    println!("");
-                }
-                Other(ref fragment) => {
-                    if fragment.furigana.is_some() {
-                        print!("Vocabulary: ");
-                        print_fragment(fragment);
-                        println!("");
-                    }
-                }
-                Name(ref fragments) => {
-                    print!("Name: ");
-                    print_fragments(fragments);
-                    println!("");
-                }
+                Location(ref fragments) => locations.push(fragments),
+                Other(ref fragment) => vocab.push(fragment),
+                Name(ref fragments) => names.push(fragments),
             }
         }
     }
+
+    if !vocab.is_empty() {
+        println!("Vocabulary:");
+        vocab.retain(|frag| frag.furigana.is_some());
+        vocab.sort_by_key(|frag| &frag.furigana);
+        vocab.dedup_by_key(|frag| &frag.text);
+        for v in vocab {
+            print_fragment(v);
+            println!("");
+        }
+
+        println!("");
+    }
+
+    if !locations.is_empty() {
+        // TODO: Sort, dedupe
+        println!("Locations:");
+        for l in locations {
+            print_fragments(l);
+            println!("");
+        }
+        println!("");
+    }
+
+    if !names.is_empty() {
+        // TODO: Sort, dedupe
+        println!("Names:");
+        for n in names {
+            print_fragments(n);
+            println!("");
+        }
+        println!("");
+    }
+
 }
