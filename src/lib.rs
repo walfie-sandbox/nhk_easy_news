@@ -21,7 +21,7 @@ pub struct Article {
     pub paragraphs: Vec<Tokens>,
 }
 
-fn parse_article(html_string: &str) -> Option<Article> {
+pub fn parse_article(html_string: &str) -> Option<Article> {
     Document::from(html_string)
         .find(predicate::Attr("id", "main"))
         .next()
@@ -31,7 +31,7 @@ fn parse_article(html_string: &str) -> Option<Article> {
 fn parse_article_from_node<'a>(root: Node<'a>) -> Option<Article> {
     let title = root.find(predicate::Attr("id", "newstitle"))
         .next()
-        .and_then(|n| n.first_child())
+        .and_then(|n| n.find(predicate::Name("h2")).next())
         .map(token::parse_tokens);
 
     let image_element = root.find(predicate::Attr("id", "mainimage")).next();
@@ -55,6 +55,7 @@ fn parse_article_from_node<'a>(root: Node<'a>) -> Option<Article> {
         predicate::Attr("id", "newsarticle"),
         predicate::Name("p"),
     )).map(token::parse_tokens)
+        .filter(|tokens| !tokens.0.is_empty())
         .collect();
 
     title.map(|t| {

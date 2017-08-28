@@ -1,4 +1,3 @@
-use select::document::Document;
 use select::node::Node;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
