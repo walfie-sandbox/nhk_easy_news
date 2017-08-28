@@ -1,12 +1,29 @@
 use select::node::Node;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Tokens(pub Vec<Token>);
+
+impl fmt::Display for Tokens {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for token in self.0.iter() {
+            write!(f, "{}", token)?
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fragment {
     pub text: String,
     pub furigana: Option<String>,
+}
+
+impl fmt::Display for Fragment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.text)
+    }
 }
 
 impl<S> From<S> for Fragment
@@ -26,6 +43,27 @@ pub enum Token {
     Location(Vec<Fragment>),
     Name(Vec<Fragment>),
     Other(Fragment),
+}
+
+fn write_fragments(f: &mut fmt::Formatter, fragments: &[Fragment]) -> fmt::Result {
+    for fragment in fragments {
+        write!(f, "{}", fragment)?
+    }
+
+    Ok(())
+}
+
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Token::*;
+
+        match *self {
+            Location(ref fragments) => write_fragments(f, fragments.as_slice()),
+            Other(ref fragment) => write!(f, "{}", fragment),
+            Name(ref fragments) => write_fragments(f, fragments.as_slice()),
+        }
+    }
 }
 
 pub(crate) fn parse_tokens<'a>(node: Node<'a>) -> Tokens {

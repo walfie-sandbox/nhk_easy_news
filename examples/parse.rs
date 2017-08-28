@@ -7,7 +7,11 @@ fn main() {
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer).unwrap();
 
-    let article = nhk_easy_news::parse_article(buffer.as_str());
+    let article = nhk_easy_news::parse_article(buffer.as_str()).expect("failed to parse article");
 
-    println!("{:#?}", article);
+    println!("{}\n", article.title);
+
+    for paragraph in article.paragraphs.iter() {
+        println!("{}\n", paragraph);
+    }
 }
