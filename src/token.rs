@@ -2,10 +2,10 @@ use select::document::Document;
 use select::node::Node;
 use std::borrow::Cow;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Tokens<'a>(pub Vec<Token<'a>>);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fragment<'a> {
     pub text: Cow<'a, str>,
     pub furigana: Option<Cow<'a, str>>,
@@ -23,11 +23,19 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token<'a> {
     Location(Vec<Fragment<'a>>),
     Name(Vec<Fragment<'a>>),
     Other(Fragment<'a>),
+}
+
+pub(crate) fn parse_tokens<'a>(node: Node<'a>) -> Tokens<'a> {
+    Tokens(
+        node.children()
+            .filter_map(|node| parse_token(node))
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn parse_token<'a>(node: Node<'a>) -> Option<Token<'a>> {
@@ -63,7 +71,7 @@ where
 }
 
 fn parse_ruby<'a>(node: Node<'a>) -> Option<Fragment<'a>> {
-    use select::predicate::{Name, Text};
+    use predicate::{Name, Text};
 
     node.find(Text).next().map(|text| {
         let furigana = node.find(Name("rt")).next().map(|rt| rt.text().into());
@@ -81,10 +89,8 @@ mod test {
 
     #[test]
     fn ruby() {
-        use select::predicate::Name;
-
         let doc = Document::from("<ruby>強<rt>つよ</rt></ruby>");
-        let ruby = doc.find(Name("ruby")).next().unwrap();
+        let ruby = doc.find(predicate::Name("ruby")).next().unwrap();
 
         assert_eq!(
             parse_ruby(ruby),
@@ -97,8 +103,6 @@ mod test {
 
     #[test]
     fn tokens() {
-        use select::predicate::Name;
-
         let html_string = r#"<div>
             <ruby>
                 今
@@ -128,14 +132,9 @@ mod test {
             .replace("\n", "");
 
         let doc = Document::from(html_string.as_ref());
-        let contents = doc.find(Name("div")).next().unwrap();
+        let contents = doc.find(predicate::Name("div")).next().unwrap();
 
-        let nodes = contents
-            .children()
-            .filter_map(|node| parse_token(node))
-            .collect::<Vec<_>>();
-
-        let expected = [
+        let expected = vec![
             Token::Other(Fragment {
                 text: "今".into(),
                 furigana: Some("いま".into()),
@@ -168,6 +167,6 @@ mod test {
             }),
         ];
 
-        assert_eq!(nodes, expected);
+        assert_eq!(parse_tokens(contents), Tokens(expected));
     }
 }
