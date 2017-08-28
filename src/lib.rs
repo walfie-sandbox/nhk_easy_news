@@ -5,7 +5,7 @@ mod token;
 use select::document::Document;
 use select::node::Node;
 use select::predicate;
-use token::Tokens;
+pub use token::{Fragment, Token, Tokens};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Image {
