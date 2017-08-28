@@ -1,21 +1,20 @@
 use select::document::Document;
 use select::node::Node;
-use std::borrow::Cow;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Tokens<'a>(pub Vec<Token<'a>>);
+pub struct Tokens(pub Vec<Token>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Fragment<'a> {
-    pub text: Cow<'a, str>,
-    pub furigana: Option<Cow<'a, str>>,
+pub struct Fragment {
+    pub text: String,
+    pub furigana: Option<String>,
 }
 
-impl<'a, S> From<S> for Fragment<'a>
+impl<S> From<S> for Fragment
 where
-    S: Into<Cow<'a, str>>,
+    S: Into<String>,
 {
-    fn from(text: S) -> Fragment<'a> {
+    fn from(text: S) -> Fragment {
         Fragment {
             text: text.into(),
             furigana: None,
@@ -24,13 +23,13 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Token<'a> {
-    Location(Vec<Fragment<'a>>),
-    Name(Vec<Fragment<'a>>),
-    Other(Fragment<'a>),
+pub enum Token {
+    Location(Vec<Fragment>),
+    Name(Vec<Fragment>),
+    Other(Fragment),
 }
 
-pub(crate) fn parse_tokens<'a>(node: Node<'a>) -> Tokens<'a> {
+pub(crate) fn parse_tokens<'a>(node: Node<'a>) -> Tokens {
     Tokens(
         node.children()
             .filter_map(|node| parse_token(node))
@@ -38,7 +37,7 @@ pub(crate) fn parse_tokens<'a>(node: Node<'a>) -> Tokens<'a> {
     )
 }
 
-fn parse_token<'a>(node: Node<'a>) -> Option<Token<'a>> {
+fn parse_token<'a>(node: Node<'a>) -> Option<Token> {
     match node.name() {
         Some("span") => {
             let fragments = parse_fragments(node.children());
@@ -54,7 +53,7 @@ fn parse_token<'a>(node: Node<'a>) -> Option<Token<'a>> {
     }
 }
 
-fn parse_fragment<'a>(node: Node<'a>) -> Option<Fragment<'a>> {
+fn parse_fragment<'a>(node: Node<'a>) -> Option<Fragment> {
     match node.name() {
         None => node.as_text().map(Fragment::from),
         Some("ruby") => parse_ruby(node),
@@ -63,14 +62,14 @@ fn parse_fragment<'a>(node: Node<'a>) -> Option<Fragment<'a>> {
 }
 
 
-fn parse_fragments<'a, N>(nodes: N) -> Vec<Fragment<'a>>
+fn parse_fragments<'a, N>(nodes: N) -> Vec<Fragment>
 where
     N: Iterator<Item = Node<'a>>,
 {
     nodes.filter_map(|n| parse_fragment(n)).collect()
 }
 
-fn parse_ruby<'a>(node: Node<'a>) -> Option<Fragment<'a>> {
+fn parse_ruby<'a>(node: Node<'a>) -> Option<Fragment> {
     use predicate::{Name, Text};
 
     node.find(Text).next().map(|text| {

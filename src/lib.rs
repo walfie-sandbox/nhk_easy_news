@@ -5,31 +5,30 @@ mod token;
 use select::document::Document;
 use select::node::Node;
 use select::predicate;
-use std::borrow::Cow;
 use token::Tokens;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Image<'a> {
-    pub url: Cow<'a, str>,
-    pub caption: Option<Cow<'a, str>>,
+pub struct Image {
+    pub url: String,
+    pub caption: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Article<'a> {
-    pub title: Tokens<'a>,
-    pub image: Option<Image<'a>>,
-    pub video: Option<Cow<'a, str>>,
-    pub paragraphs: Vec<Tokens<'a>>,
+pub struct Article {
+    pub title: Tokens,
+    pub image: Option<Image>,
+    pub video: Option<String>,
+    pub paragraphs: Vec<Tokens>,
 }
 
-fn parse_article_from_document<'a>(document: &'a Document) -> Option<Article<'a>> {
-    document
+fn parse_article(html_string: &str) -> Option<Article> {
+    Document::from(html_string)
         .find(predicate::Attr("id", "main"))
         .next()
         .and_then(parse_article_from_node)
 }
 
-fn parse_article_from_node<'a>(root: Node<'a>) -> Option<Article<'a>> {
+fn parse_article_from_node<'a>(root: Node<'a>) -> Option<Article> {
     let title = root.find(predicate::Attr("id", "newstitle"))
         .next()
         .and_then(|n| n.first_child())
@@ -48,7 +47,7 @@ fn parse_article_from_node<'a>(root: Node<'a>) -> Option<Article<'a>> {
             })
         });
 
-    let video: Option<Cow<str>> = image_element
+    let video: Option<String> = image_element
         .and_then(|n| n.find(predicate::Attr("class", "playBT")).next())
         .and_then(|n| n.attr("id").map(Into::into));
 
